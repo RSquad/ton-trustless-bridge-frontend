@@ -69,33 +69,37 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
         await tonRawBlockchainApi.getTransactions({
           account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
         });
-      await sendWrap(BigInt(ethAddr), BigInt(tonsToWrap));
-      let found = false;
-      let attempts = 0;
-      while (!found && attempts < 10) {
-        const txs = (
-          await tonRawBlockchainApi.getTransactions({
-            account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
-          })
-        ).transactions.filter(
-          (tx: Transaction) =>
-            !beforeTxs.find((beforeTx) => beforeTx.hash === tx.hash)
-        );
-        if (txs.length) {
-          const tx = txs.find((tx) => {
-            const addr = tx.inMsg?.source?.address;
-            if (!addr) return false;
-            return Address.parse(addr).equals(Address.parse(myTonAddrRaw));
-          });
-          if (tx) {
-            found = true;
-            console.log(tx); // !!!!!
+      try {
+        await sendWrap(BigInt(ethAddr), BigInt(tonsToWrap));
+        let found = false;
+        let attempts = 0;
+        while (!found && attempts < 10) {
+          const txs = (
+            await tonRawBlockchainApi.getTransactions({
+              account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
+            })
+          ).transactions.filter(
+            (tx: Transaction) =>
+              !beforeTxs.find((beforeTx) => beforeTx.hash === tx.hash)
+          );
+          if (txs.length) {
+            const tx = txs.find((tx) => {
+              const addr = tx.inMsg?.source?.address;
+              if (!addr) return false;
+              return Address.parse(addr).equals(Address.parse(myTonAddrRaw));
+            });
+            if (tx) {
+              found = true;
+              console.log(tx); // !!!!!
+            }
           }
+          attempts += 1;
+          await sleep(2000);
         }
-        attempts += 1;
-        await sleep(2000);
+        setSubmitting(false);
+      } catch (err) {
+        setSubmitting(false);
       }
-      setSubmitting(false);
     },
   });
 

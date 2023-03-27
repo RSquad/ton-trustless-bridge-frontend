@@ -1,11 +1,18 @@
 import { BridgeOpCodes } from "@/artifacts/ton/bridge/op-codes";
+import { tonRawBlockchainApi } from "@/services";
 import { Base64 } from "@tonconnect/protocol";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { useFormik } from "formik";
 import { FC, HTMLAttributes, useEffect, useState } from "react";
 import { Button, Container, Form, Input, Step } from "semantic-ui-react";
-import { beginCell, toNano } from "ton-core";
+import { Address, beginCell, toNano } from "ton-core";
+import { Transaction } from "tonapi-sdk-js";
 import { useAccount } from "wagmi";
+
+export const sleep = (timeout: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, timeout);
+  });
 
 interface WrapTonProps extends HTMLAttributes<HTMLDivElement> {}
 
@@ -16,6 +23,14 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
   const [connectionRestored, setConnectionRestored] = useState(false);
   useEffect(() => {
     tonConnectUI.connectionRestored.then(() => setConnectionRestored(true));
+  }, []);
+
+  useEffect(() => {
+    tonRawBlockchainApi
+      .getTransactions({
+        account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
+      })
+      .then(console.log);
   }, []);
 
   const sendWrap = async (ethAddr: bigint, tonsToWrap: bigint) => {
@@ -50,7 +65,36 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
       ethAddr: "",
     },
     onSubmit: async ({ ethAddr, tonsToWrap }, { setSubmitting }) => {
+      const { transactions: beforeTxs } =
+        await tonRawBlockchainApi.getTransactions({
+          account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
+        });
       await sendWrap(BigInt(ethAddr), BigInt(tonsToWrap));
+      let found = false;
+      let attempts = 0;
+      while (!found && attempts < 10) {
+        const txs = (
+          await tonRawBlockchainApi.getTransactions({
+            account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
+          })
+        ).transactions.filter(
+          (tx: Transaction) =>
+            !beforeTxs.find((beforeTx) => beforeTx.hash === tx.hash)
+        );
+        if (txs.length) {
+          const tx = txs.find((tx) => {
+            const addr = tx.inMsg?.source?.address;
+            if (!addr) return false;
+            return Address.parse(addr).equals(Address.parse(myTonAddrRaw));
+          });
+          if (tx) {
+            found = true;
+            console.log(tx); // !!!!!
+          }
+        }
+        attempts += 1;
+        await sleep(2000);
+      }
       setSubmitting(false);
     },
   });

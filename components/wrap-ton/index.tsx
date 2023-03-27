@@ -1,13 +1,41 @@
+import { bridgeAbi } from "@/artifacts/eth/bridge/bridge";
 import { BridgeOpCodes } from "@/artifacts/ton/bridge/op-codes";
 import { tonRawBlockchainApi } from "@/services";
+import { TonBlock, TonTransaction } from "@/types";
 import { Base64 } from "@tonconnect/protocol";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
+import axios from "axios";
 import { useFormik } from "formik";
-import { FC, HTMLAttributes, useEffect, useState } from "react";
+import { FC, HTMLAttributes, useEffect, useMemo, useState } from "react";
 import { Button, Container, Form, Input, Step } from "semantic-ui-react";
 import { Address, beginCell, toNano } from "ton-core";
 import { Transaction } from "tonapi-sdk-js";
-import { useAccount } from "wagmi";
+import { useAccount, useContract, useSigner } from "wagmi";
+
+const apiRoot = "http://localhost:3001/ton-explorer";
+
+function selectedMcBlock(tx: TonTransaction) {
+  if (!tx) {
+    return undefined;
+  }
+  if (tx.mcParent?.workchain === -1) {
+    return tx.mcParent;
+  }
+  if (tx.mcParent?.workchain === 0 && tx.mcParent?.mcParent?.workchain) {
+    return tx.mcParent?.mcParent;
+  }
+  return undefined;
+}
+
+function selectedShardBlock(tx: TonTransaction) {
+  if (!tx) {
+    return undefined;
+  }
+  if (tx.mcParent?.workchain === 0) {
+    return tx.mcParent;
+  }
+  return undefined;
+}
 
 export const sleep = (timeout: number) =>
   new Promise((resolve) => {
@@ -98,6 +126,7 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
         }
         setSubmitting(false);
       } catch (err) {
+        console.log(err);
         setSubmitting(false);
       }
     },
@@ -106,6 +135,121 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
   useEffect(() => {
     formik.setFieldValue("ethAddr", myEvmAccount.address);
   }, [myEvmAccount.address]);
+
+  const provider = useSigner();
+  const bridgeContract = useContract({
+    address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+    abi: bridgeAbi,
+    signerOrProvider: provider.data,
+  });
+
+  const [currentTx, setCurrentTx] = useState<TonTransaction>();
+  const mcBlock = useMemo(() => {
+    if (!currentTx) {
+      return undefined;
+    }
+    return selectedMcBlock(currentTx);
+  }, [currentTx]);
+  const shardBlock = useMemo(() => {
+    if (!currentTx) {
+      return undefined;
+    }
+    return selectedShardBlock(currentTx);
+  }, [currentTx]);
+
+  const isMcBlockReady = !mcBlock || mcBlock?.checked;
+  const isShardBlockReady = !shardBlock || shardBlock?.checked;
+  const isTxReadyForValidate = isMcBlockReady && isShardBlockReady;
+
+  const validateBlock = async (block: TonBlock) => {
+    // if (this.disabledValidating) {
+    //   return;
+    // }
+    // this.disabledValidating = true;
+    // this.updateSelectedByBlock(block, true);
+
+    if (block.workchain === -1) {
+      const res = await axios.post(
+        "http://localhost:3001/validator/checkmcblock",
+        {
+          seqno: block.seqno,
+        }
+      );
+      console.log(res.data);
+
+      // this.explorerService
+      //   .checkMcBlockByValidators(block.seqno)
+      //   .subscribe((res) => {
+      //     this.disabledValidating = false;
+      //     this.updateSelectedByBlock(block, false, true);
+      //   });
+    } else {
+      const res = await axios.post(
+        "http://localhost:3001/validator/checkshard",
+        { id: block.id }
+      );
+      console.log(res.data);
+      // this.explorerService.checkShardBlock(block.id).subscribe(() => {
+      //   this.disabledValidating = false;
+      //   this.updateSelectedByBlock(block, false, true);
+      // });
+    }
+  };
+
+  const validate = async (tx: TonTransaction) => {
+    // if (this.disabledValidating) {
+    //   return;
+    // }
+    // this.disabledValidating = true;
+    const { data: txValidateParams } = await axios.post(
+      "http://localhost:3001/validator/checktx",
+      tx
+    );
+    console.log(txValidateParams);
+    if (!bridgeContract) {
+      return;
+    }
+    console.log("building tx...");
+    await bridgeContract.readTransaction(
+      Buffer.from(txValidateParams.txBoc, "hex"),
+      Buffer.from(txValidateParams.boc, "hex"),
+      txValidateParams.adapter
+    );
+    // this.explorerService.checkTransaction(tx).subscribe((value: any) => {
+    //   console.log('tx:', value);
+    //   if (this.contractService.bridgeContract) {
+    //     this.contractService.bridgeContract
+    //       .readTransaction(
+    //         Buffer.from(value.txBoc, 'hex'),
+    //         Buffer.from(value.boc, 'hex'),
+    //         value.adapter
+    //       )
+    //       .then(() => {
+    //         // this.isDone = true;
+    //         // this.disabledValidating = false;});
+    //   } else {
+    //     console.log('bridge contract not initialized');
+    //     // this.disabledValidating = false;
+    //   }
+    // });
+  };
+
+  useEffect(() => {
+    const testHash =
+      "0352633cb10ba49db38c533f922ddb5d050af453302ae917e5c5920f2a2f8c79";
+    fetch(`${apiRoot}/findtx/${testHash}`)
+      .then((v) => v.json())
+      .then((txs: TonTransaction[]) => {
+        console.log(txs);
+        const tx = txs[0];
+
+        if (!tx) {
+          console.log("Error: tx not found. Try to find it later");
+        }
+
+        setCurrentTx(tx);
+      });
+  }, []);
 
   return (
     <div>
@@ -163,6 +307,55 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
             <Button type="reset">Reset</Button>
           </Container>
         </Form>
+      </Container>
+
+      <Container className="p-8 border border-1 rounded">
+        {mcBlock && (
+          <div>
+            {isMcBlockReady ? (
+              "✅"
+            ) : (
+              <Button
+                onClick={() => {
+                  validateBlock(mcBlock);
+                }}
+              >
+                Validate
+              </Button>
+            )}{" "}
+            McBlock
+          </div>
+        )}
+        {shardBlock && (
+          <div>
+            {isShardBlockReady ? (
+              "✅"
+            ) : (
+              <Button
+                onClick={() => {
+                  validateBlock(shardBlock);
+                }}
+              >
+                Validate
+              </Button>
+            )}{" "}
+            ShardBlock
+          </div>
+        )}
+        {currentTx && (
+          <div>
+            {isTxReadyForValidate && (
+              <Button
+                onClick={() => {
+                  validate(currentTx);
+                }}
+              >
+                Validate
+              </Button>
+            )}{" "}
+            Transaction
+          </div>
+        )}
       </Container>
     </div>
   );

@@ -12,7 +12,7 @@ import { Address, beginCell, toNano } from "ton-core";
 import { Transaction } from "tonapi-sdk-js";
 import { useAccount, useContract, useSigner } from "wagmi";
 
-const apiRoot = "http://localhost:3001/ton-explorer";
+const apiRoot = "http://128.199.139.200:3000/ton-explorer";
 
 function selectedMcBlock(tx: TonTransaction) {
   if (!tx) {
@@ -118,6 +118,7 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
             });
             if (tx) {
               found = true;
+              setTestHash(tx.hash);
               console.log(tx); // !!!!!
             }
           }
@@ -138,11 +139,15 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
 
   const provider = useSigner();
   const bridgeContract = useContract({
-    address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+    // address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+    address: "0x18A9e708B17A477BFF625db0F65C6f10B41d73ca",
     abi: bridgeAbi,
     signerOrProvider: provider.data,
   });
 
+  const [testHash, setTestHash] = useState<string>(
+    "d8131b494f4cc8ce94cc192034eb7af6cc713846dc54379f741cb864c3ae78e5"
+  );
   const [currentTx, setCurrentTx] = useState<TonTransaction>();
   const mcBlock = useMemo(() => {
     if (!currentTx) {
@@ -170,9 +175,9 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
 
     if (block.workchain === -1) {
       const res = await axios.post(
-        "http://localhost:3001/validator/checkmcblock",
+        "http://128.199.139.200:3000/validator/checkmcblock",
         {
-          seqno: block.seqno,
+          id: block.id,
         }
       );
       console.log(res.data);
@@ -185,7 +190,7 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
       //   });
     } else {
       const res = await axios.post(
-        "http://localhost:3001/validator/checkshard",
+        "http://128.199.139.200:3000/validator/checkshard",
         { id: block.id }
       );
       console.log(res.data);
@@ -202,7 +207,7 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
     // }
     // this.disabledValidating = true;
     const { data: txValidateParams } = await axios.post(
-      "http://localhost:3001/validator/checktx",
+      "http://128.199.139.200:3000/validator/checktx",
       tx
     );
     console.log(txValidateParams);
@@ -210,11 +215,17 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
       return;
     }
     console.log("building tx...");
+    console.log({
+      txBloc: Buffer.from(txValidateParams.txBoc, "hex"),
+      boc: Buffer.from(txValidateParams.boc, "hex"),
+      adapter: txValidateParams.adapter,
+    });
     await bridgeContract.readTransaction(
       Buffer.from(txValidateParams.txBoc, "hex"),
       Buffer.from(txValidateParams.boc, "hex"),
       txValidateParams.adapter
     );
+    console.log("tx completed");
     // this.explorerService.checkTransaction(tx).subscribe((value: any) => {
     //   console.log('tx:', value);
     //   if (this.contractService.bridgeContract) {
@@ -235,8 +246,6 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    const testHash =
-      "0352633cb10ba49db38c533f922ddb5d050af453302ae917e5c5920f2a2f8c79";
     fetch(`${apiRoot}/findtx/${testHash}`)
       .then((v) => v.json())
       .then((txs: TonTransaction[]) => {
@@ -249,7 +258,7 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
 
         setCurrentTx(tx);
       });
-  }, []);
+  }, [testHash]);
 
   return (
     <div>

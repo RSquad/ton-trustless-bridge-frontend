@@ -121,7 +121,7 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({ children, txHash }) => {
     setPending(true);
     try {
       const { data: txValidateParams } = await axios.post(
-        "http://128.199.139.200:3000/validator/checktx",
+        apiRoot + "/validator/checktx",
         tx
       );
       console.log(txValidateParams);
@@ -134,13 +134,14 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({ children, txHash }) => {
         boc: Buffer.from(txValidateParams.boc, "hex"),
         adapter: txValidateParams.adapter,
       });
-      await bridgeContract.readTransaction(
+      const txRes = await bridgeContract.readTransaction(
         Buffer.from(txValidateParams.txBoc, "hex"),
         Buffer.from(txValidateParams.boc, "hex"),
         txValidateParams.adapter
       );
       console.log("tx completed");
     } catch (error) {
+      console.log(error);
     } finally {
       setPending(false);
     }

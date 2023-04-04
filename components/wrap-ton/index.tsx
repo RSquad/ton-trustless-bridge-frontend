@@ -10,11 +10,11 @@ import SendTon from "../send-ton";
 interface WrapTonProps extends HTMLAttributes<HTMLDivElement> {}
 
 const WrapTon: FC<WrapTonProps> = ({ children }) => {
-  const [testHash, setTestHash] = useState<string>(
-    // "d8131b494f4cc8ce94cc192034eb7af6cc713846dc54379f741cb864c3ae78e5"
-    "87bc60dd122271e3a7b14ee86a1f999f33d7529199908b8230bbb8e48253c90c"
-  );
-  const [step, setStep] = useState<number>(1);
+  const [testHash, setTestHash] = useState<string>("");
+  // "3e387bf554e35b25d5923402f9937b73d92f97055649e69a78d5025af6788652"
+  // "d8131b494f4cc8ce94cc192034eb7af6cc713846dc54379f741cb864c3ae78e5"
+  // "87bc60dd122271e3a7b14ee86a1f999f33d7529199908b8230bbb8e48253c90c"
+  const [step, setStep] = useState<number>(0);
 
   useEffect(() => {
     tonRawBlockchainApi

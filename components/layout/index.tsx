@@ -12,10 +12,10 @@ const Layout: FC<LayoutProps> = ({ children }) => {
       <div style={{ flex: "1 0 auto" }}>
         <Menu className="h-16">
           <Container>
-            <Menu.Item as={Link} href="#" header>
+            <Menu.Item as={Link} href="/" header>
               TON Trustless Bridge
             </Menu.Item>
-            <Menu.Item as={Link} href="#">
+            <Menu.Item as={Link} href="/blocks">
               Blocks
             </Menu.Item>
             <Menu.Item as={Link} href="#">

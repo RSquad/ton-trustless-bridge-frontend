@@ -45,7 +45,7 @@ const SendTon: FC<SendTonProps> = ({ children, setTxHash }) => {
                 .storeUint(BridgeOpCodes.WRAP, 32)
                 .storeUint(0, 64)
                 .storeUint(ethAddr, 256)
-                .storeUint(tonsToWrap, 256)
+                .storeUint(toNano(tonsToWrap), 256)
                 .storeUint(0, 1)
                 .endCell()
                 .toBoc()

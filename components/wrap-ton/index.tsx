@@ -18,6 +18,7 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
   //   lt: 10555732000003,
   //   hash: "2cf147759d1fff6a88c657ddd0541ed39042695f9d87b72c48f3fc7ff3b07595",
   // }
+  const [ethTxHash, setEthTxHash] = useState<string>();
   // {
   //   workchain: 0,
   //   lt: 9882134000003,
@@ -77,13 +78,15 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
       {step === 1 && (
         <ProcessTransfer
           txHash={testHash}
-          onComplete={() => {
+          onComplete={(hash) => {
             setStep(2);
+            setEthTxHash(hash);
           }}
         />
       )}
       {step === 2 && (
         <TakeWton
+          txHash={ethTxHash}
           resetStep={() => {
             setStep(0);
             setTestHash(undefined);

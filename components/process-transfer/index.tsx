@@ -62,7 +62,7 @@ function fetchTx(txHash: TxReq): Promise<TonTransaction> {
 
 interface ProcessTransferProps extends HTMLAttributes<HTMLDivElement> {
   txHash?: TxReq;
-  onComplete: () => void;
+  onComplete: (hash: string) => void;
 }
 
 const ProcessTransfer: FC<ProcessTransferProps> = ({
@@ -162,8 +162,9 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({
         Buffer.from(txValidateParams.boc, "hex"),
         txValidateParams.adapter
       );
-      console.log("tx completed");
-      onComplete();
+      console.log("tx completed", txRes);
+
+      onComplete(txRes.hash);
     } catch (error) {
       console.log(error);
     } finally {

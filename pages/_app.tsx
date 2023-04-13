@@ -11,7 +11,7 @@ import {
 } from "@web3modal/ethereum";
 import { Web3Modal } from "@web3modal/react";
 import { useEffect, useState } from "react";
-import { configureChains, createClient, WagmiConfig } from "wagmi";
+import { WagmiConfig, configureChains, createClient } from "wagmi";
 import { bscTestnet } from "wagmi/chains";
 
 // 2. Configure wagmi client

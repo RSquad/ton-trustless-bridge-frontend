@@ -1,9 +1,16 @@
 import { bridgeAbi } from "@/artifacts/eth/bridge/bridge";
-import { TonBlock, TonTransaction } from "@/types";
+import { TonBlock, TonTransaction, TxReq } from "@/types";
 import { sleep } from "@/utils";
 import axios from "axios";
 import { FC, HTMLAttributes, useEffect, useMemo, useState } from "react";
-import { Button, Container } from "semantic-ui-react";
+import {
+  Button,
+  Container,
+  Dimmer,
+  Icon,
+  List,
+  Loader,
+} from "semantic-ui-react";
 import { useContract, useSigner } from "wagmi";
 
 const apiRoot = process.env.NEXT_PUBLIC_TRUSTLESS_BACKEND_URL;
@@ -31,8 +38,10 @@ function selectedShardBlock(tx: TonTransaction) {
   return undefined;
 }
 
-function fetchTx(txHash: string): Promise<TonTransaction> {
-  return fetch(`${apiRoot}/ton-explorer/findtx/${txHash}`)
+function fetchTx(txHash: TxReq): Promise<TonTransaction> {
+  return fetch(
+    `${apiRoot}/ton-explorer/findtx/${txHash.hash}?workchain=${txHash.workchain}&lt=${txHash.lt}`
+  )
     .then((v) => v.json())
     .then((txs: TonTransaction[]) => {
       console.log(txs);
@@ -44,20 +53,26 @@ function fetchTx(txHash: string): Promise<TonTransaction> {
       }
 
       return tx;
-    })
-    .catch((err) => {
-      console.log(err);
-      return sleep(5000).then(() => fetchTx(txHash));
     });
+  // .catch((err) => {
+  //   console.log(err);
+  //   return sleep(5000).then(() => fetchTx(txHash));
+  // });
 }
 
 interface ProcessTransferProps extends HTMLAttributes<HTMLDivElement> {
-  txHash: string;
+  txHash?: TxReq;
+  onComplete: () => void;
 }
 
-const ProcessTransfer: FC<ProcessTransferProps> = ({ children, txHash }) => {
+const ProcessTransfer: FC<ProcessTransferProps> = ({
+  children,
+  txHash,
+  onComplete,
+}) => {
   const [currentTx, setCurrentTx] = useState<TonTransaction>();
   const [pending, setPending] = useState(false);
+  const [count, setCount] = useState(0);
   const mcBlock = useMemo(() => {
     if (!currentTx) {
       return undefined;
@@ -85,13 +100,21 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({ children, txHash }) => {
   });
 
   useEffect(() => {
-    fetchTx(txHash).then((tx) => {
-      setCurrentTx(tx);
-    });
-  }, [txHash]);
+    if (txHash && !currentTx) {
+      fetchTx(txHash)
+        .then((tx) => {
+          setCurrentTx(tx);
+        })
+        .catch((e) => {
+          return sleep(5000).then(() => {
+            setCount((v) => v + 1);
+          });
+        });
+    }
+  }, [txHash, currentTx, count]);
 
   const validateBlock = async (block: TonBlock) => {
-    if (pending) {
+    if (pending || !txHash) {
       return;
     }
     setPending(true);
@@ -140,6 +163,7 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({ children, txHash }) => {
         txValidateParams.adapter
       );
       console.log("tx completed");
+      onComplete();
     } catch (error) {
       console.log(error);
     } finally {
@@ -148,55 +172,77 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({ children, txHash }) => {
   };
 
   return (
-    <Container className="p-8 border border-1 rounded">
-      {mcBlock && (
-        <div>
-          {isMcBlockReady ? (
-            "✅"
-          ) : (
-            <Button
-              loading={pending}
-              onClick={() => {
-                validateBlock(mcBlock);
-              }}
-            >
-              Validate
-            </Button>
-          )}{" "}
-          McBlock
-        </div>
+    <Container className="p-8 border border-1 rounded segment min-h-[120px]">
+      <Dimmer active={!currentTx} inverted>
+        <Loader inverted>Waiting for transaction...</Loader>
+      </Dimmer>
+
+      <List verticalAlign="middle" relaxed>
+        {mcBlock && (
+          <List.Item>
+            <List.Content>
+              <Icon
+                name={isMcBlockReady ? "check" : "warning circle"}
+                color={isMcBlockReady ? "green" : "yellow"}
+              />
+              Masterchain block
+            </List.Content>
+          </List.Item>
+        )}
+        {shardBlock && (
+          <List.Item>
+            <List.Content>
+              {/* <Icon name="wait" color="yellow" /> */}
+              <Icon
+                name={isShardBlockReady ? "check" : "warning circle"}
+                color={isShardBlockReady ? "green" : "yellow"}
+              />
+              Shardchain block
+            </List.Content>
+          </List.Item>
+        )}
+        {currentTx && (
+          <List.Item>
+            <List.Content>
+              <Icon name="warning circle" color="yellow" />
+              Transaction
+            </List.Content>
+          </List.Item>
+        )}
+      </List>
+
+      {mcBlock && !isMcBlockReady && (
+        <Button
+          primary
+          loading={pending}
+          onClick={() => {
+            validateBlock(mcBlock);
+          }}
+        >
+          Validate Masterchain block
+        </Button>
       )}
-      {shardBlock && (
-        <div>
-          {isShardBlockReady ? (
-            "✅"
-          ) : (
-            <Button
-              loading={pending}
-              onClick={() => {
-                validateBlock(shardBlock);
-              }}
-            >
-              Validate
-            </Button>
-          )}{" "}
-          ShardBlock
-        </div>
+      {shardBlock && isMcBlockReady && !isShardBlockReady && (
+        <Button
+          primary
+          loading={pending}
+          onClick={() => {
+            validateBlock(shardBlock);
+          }}
+        >
+          Validate Shardchain block
+        </Button>
       )}
-      {currentTx && (
-        <div>
-          {isTxReadyForValidate && (
-            <Button
-              loading={pending}
-              onClick={() => {
-                validate(currentTx);
-              }}
-            >
-              Validate
-            </Button>
-          )}{" "}
-          Transaction
-        </div>
+      {currentTx && isTxReadyForValidate && (
+        <Button
+          primary
+          loading={pending}
+          onClick={() => {
+            validate(currentTx);
+          }}
+        >
+          Validate Transaction
+        </Button>
       )}
     </Container>
   );

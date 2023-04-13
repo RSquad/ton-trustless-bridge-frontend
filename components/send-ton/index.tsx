@@ -1,5 +1,6 @@
 import { BridgeOpCodes } from "@/artifacts/ton/bridge/op-codes";
 import { tonRawBlockchainApi } from "@/services";
+import { TxReq } from "@/types";
 import { sleep } from "@/utils";
 import { Base64 } from "@tonconnect/protocol";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
@@ -18,7 +19,7 @@ import { Transaction } from "tonapi-sdk-js";
 import { useAccount } from "wagmi";
 
 interface SendTonProps extends HTMLAttributes<HTMLDivElement> {
-  setTxHash: Dispatch<SetStateAction<string>>;
+  setTxHash: Dispatch<SetStateAction<TxReq | undefined>>;
 }
 
 const SendTon: FC<SendTonProps> = ({ children, setTxHash }) => {
@@ -92,7 +93,10 @@ const SendTon: FC<SendTonProps> = ({ children, setTxHash }) => {
             });
             if (tx) {
               found = true;
-              setTxHash(tx.hash);
+              const addr = Address.parse(tx.account.address);
+              const lt = tx.lt;
+              const workchain = addr.workChain;
+              setTxHash({ hash: tx.hash, lt, workchain });
               console.log(tx); // !!!!!
             }
           }

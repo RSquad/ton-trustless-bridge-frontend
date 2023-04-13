@@ -3,10 +3,10 @@ import Blocks from "@/components/blocks";
 
 const BlocksPage = () => {
   return (
-    <>
+    <div style={{ marginLeft: "-100px" }}>
       <Blocks />
       <AllBlocks />
-    </>
+    </div>
   );
 };
 

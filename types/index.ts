@@ -23,3 +23,8 @@ export interface TonBlock {
   inprogress: boolean;
 }
 
+export interface TxReq {
+  workchain: number;
+  lt: number;
+  hash: string;
+}

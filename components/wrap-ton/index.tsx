@@ -13,12 +13,23 @@ interface WrapTonProps extends HTMLAttributes<HTMLDivElement> {}
 
 const WrapTon: FC<WrapTonProps> = ({ children }) => {
   const [testHash, setTestHash] = useState<TxReq | undefined>();
+
+  const [ethTxHash, setEthTxHash] = useState<string>();
+  // {
+  //   lt: 10562672000003,
+  //   workchain: 0,
+  //   hash: "6d835d63167586079dfe8afd38a10bfb04bdec9b881d02c37f9f317a35a83458",
+  // }
+  // {
+  //   hash: "b1e4ad52109ea27cf33bf801e9e6ac14aa54b48486ab5746eb901e36667882f0",
+  //   workchain: 0,
+  //   lt: 10559539000003,
+  // }
   // {
   //   workchain: 0,
   //   lt: 10555732000003,
   //   hash: "2cf147759d1fff6a88c657ddd0541ed39042695f9d87b72c48f3fc7ff3b07595",
   // }
-  const [ethTxHash, setEthTxHash] = useState<string>();
   // {
   //   workchain: 0,
   //   lt: 9882134000003,

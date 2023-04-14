@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-body > div {
+body > #__next {
   height: 100%;
+}
+
+.min-h-min {
+  min-height: 120px;
 }

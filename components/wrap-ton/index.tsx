@@ -1,29 +1,36 @@
-import { BridgeOpCodes } from "@/artifacts/ton/bridge/op-codes";
 import { tonRawBlockchainApi } from "@/services";
-import { Base64 } from "@tonconnect/protocol";
-import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
-import { useFormik } from "formik";
+import { TxReq } from "@/types";
 import { FC, HTMLAttributes, useEffect, useState } from "react";
-import { Button, Container, Form, Input, Step } from "semantic-ui-react";
-import { Address, beginCell, toNano } from "ton-core";
-import { Transaction } from "tonapi-sdk-js";
-import { useAccount } from "wagmi";
+import { Icon, Step } from "semantic-ui-react";
+import ProcessTransfer from "../process-transfer";
+import SendTon from "../send-ton";
+import TakeWton from "../take-wton";
 
-export const sleep = (timeout: number) =>
-  new Promise((resolve) => {
-    setTimeout(resolve, timeout);
-  });
+// const apiRoot = "http://128.199.139.200:3000/ton-explorer";
+// const apiRoot = "https://localhost:3000";
 
 interface WrapTonProps extends HTMLAttributes<HTMLDivElement> {}
 
 const WrapTon: FC<WrapTonProps> = ({ children }) => {
-  const myTonAddrRaw = useTonAddress(false);
-  const myEvmAccount = useAccount();
-  const [tonConnectUI] = useTonConnectUI();
-  const [connectionRestored, setConnectionRestored] = useState(false);
-  useEffect(() => {
-    tonConnectUI.connectionRestored.then(() => setConnectionRestored(true));
-  }, []);
+  const [testHash, setTestHash] = useState<TxReq | undefined>();
+  // {
+  //   workchain: 0,
+  //   lt: 10555732000003,
+  //   hash: "2cf147759d1fff6a88c657ddd0541ed39042695f9d87b72c48f3fc7ff3b07595",
+  // }
+  const [ethTxHash, setEthTxHash] = useState<string>();
+  // {
+  //   workchain: 0,
+  //   lt: 9882134000003,
+  //   hash: "799e850f35b13f4c52abc8d5fd5a954b844d4f1e5362bfff23f202015e6416e3",
+  // }
+  // "5914ec5a7a02ec2b7cdc302270cfaf190ebf6c5490a0a6ce20ec187696c1fd1d"
+  // "3e387bf554e35b25d5923402f9937b73d92f97055649e69a78d5025af6788652"
+  // "d8131b494f4cc8ce94cc192034eb7af6cc713846dc54379f741cb864c3ae78e5"
+  // "87bc60dd122271e3a7b14ee86a1f999f33d7529199908b8230bbb8e48253c90c"
+
+  // {"2cf147759d1fff6a88c657ddd0541ed39042695f9d87b72c48f3fc7ff3b07595" 0 10555732000003}
+  const [step, setStep] = useState<number>(0);
 
   useEffect(() => {
     tonRawBlockchainApi
@@ -33,138 +40,60 @@ const WrapTon: FC<WrapTonProps> = ({ children }) => {
       .then(console.log);
   }, []);
 
-  const sendWrap = async (ethAddr: bigint, tonsToWrap: bigint) => {
-    try {
-      await tonConnectUI.sendTransaction({
-        validUntil: Date.now() + 1000000,
-        messages: [
-          {
-            address: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
-            amount: (toNano(tonsToWrap) + toNano("0.2")).toString(),
-            payload: Base64.encode(
-              beginCell()
-                .storeUint(BridgeOpCodes.WRAP, 32)
-                .storeUint(0, 64)
-                .storeUint(ethAddr, 256)
-                .storeUint(tonsToWrap, 256)
-                .storeUint(0, 1)
-                .endCell()
-                .toBoc()
-            ),
-          },
-        ],
-      });
-    } catch (err) {
-      console.error("sendWrap error: ", err);
-    }
-  };
-
-  const formik = useFormik({
-    initialValues: {
-      tonsToWrap: "",
-      ethAddr: "",
-    },
-    onSubmit: async ({ ethAddr, tonsToWrap }, { setSubmitting }) => {
-      const { transactions: beforeTxs } =
-        await tonRawBlockchainApi.getTransactions({
-          account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
-        });
-      try {
-        await sendWrap(BigInt(ethAddr), BigInt(tonsToWrap));
-        let found = false;
-        let attempts = 0;
-        while (!found && attempts < 10) {
-          const txs = (
-            await tonRawBlockchainApi.getTransactions({
-              account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
-            })
-          ).transactions.filter(
-            (tx: Transaction) =>
-              !beforeTxs.find((beforeTx) => beforeTx.hash === tx.hash)
-          );
-          if (txs.length) {
-            const tx = txs.find((tx) => {
-              const addr = tx.inMsg?.source?.address;
-              if (!addr) return false;
-              return Address.parse(addr).equals(Address.parse(myTonAddrRaw));
-            });
-            if (tx) {
-              found = true;
-              console.log(tx); // !!!!!
-            }
-          }
-          attempts += 1;
-          await sleep(2000);
-        }
-        setSubmitting(false);
-      } catch (err) {
-        setSubmitting(false);
-      }
-    },
-  });
-
-  useEffect(() => {
-    formik.setFieldValue("ethAddr", myEvmAccount.address);
-  }, [myEvmAccount.address]);
-
   return (
-    <div>
+    <>
       <Step.Group fluid widths={3}>
-        <Step active>
-          {/* <Icon name="truck" /> */}
+        <Step active={step === 0} completed={step > 0}>
+          <Icon name="send" />
           <Step.Content>
             <Step.Title>Send TON</Step.Title>
             <Step.Description>To wrap</Step.Description>
           </Step.Content>
         </Step>
 
-        <Step disabled>
-          {/* <Icon name="payment" /> */}
+        <Step active={step === 1} disabled={step < 1} completed={step > 1}>
+          <Icon name="payment" />
           <Step.Content>
             <Step.Title>Process transfer</Step.Title>
             <Step.Description>Relayers</Step.Description>
           </Step.Content>
         </Step>
 
-        <Step disabled>
-          {/* <Icon name="info" /> */}
+        <Step active={step === 2} completed={step === 2} disabled={step < 2}>
+          <Icon name="info" />
           <Step.Content>
             <Step.Title>Take your WTON</Step.Title>
           </Step.Content>
         </Step>
       </Step.Group>
 
-      <Container className="p-8 border border-1 rounded">
-        <Form onSubmit={formik.handleSubmit} loading={formik.isSubmitting}>
-          <Form.Field required>
-            <label>Enter sum</label>
-            <Input
-              placeholder="Sum"
-              name="tonsToWrap"
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.tonsToWrap}
-            />
-          </Form.Field>
-          <Form.Field required>
-            <label>Enter address</label>
-            <Input
-              placeholder="Address EVM"
-              name="ethAddr"
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.ethAddr}
-            />
-          </Form.Field>
-          <Container>
-            <Button type="submit" primary>
-              Submit
-            </Button>
-            <Button type="reset">Reset</Button>
-          </Container>
-        </Form>
-      </Container>
-    </div>
+      {step === 0 && (
+        <SendTon
+          setTxHash={(h) => {
+            setTestHash(h);
+            setStep(1);
+          }}
+        />
+      )}
+      {step === 1 && (
+        <ProcessTransfer
+          txHash={testHash}
+          onComplete={(hash) => {
+            setStep(2);
+            setEthTxHash(hash);
+          }}
+        />
+      )}
+      {step === 2 && (
+        <TakeWton
+          txHash={ethTxHash}
+          resetStep={() => {
+            setStep(0);
+            setTestHash(undefined);
+          }}
+        />
+      )}
+    </>
   );
 };
 

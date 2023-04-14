@@ -13,7 +13,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Button, Container, Form, Input } from "semantic-ui-react";
+import { Button, Container, Form, Input, Tab } from "semantic-ui-react";
 import { Address, beginCell, toNano } from "ton-core";
 import { Transaction } from "tonapi-sdk-js";
 import { useAccount } from "wagmi";
@@ -111,36 +111,100 @@ const SendTon: FC<SendTonProps> = ({ children, setTxHash }) => {
     },
   });
 
+  const oldTxFormik = useFormik({
+    initialValues: {
+      hash: "",
+      lt: "",
+    },
+    onSubmit: async (tx, { setSubmitting }) => {
+      setTxHash({
+        hash: tx.hash,
+        lt: +tx.lt,
+        workchain: 0,
+      });
+      setSubmitting(false);
+    },
+  });
+
   return (
     <Container className="p-8 border border-1 rounded">
-      <Form onSubmit={formik.handleSubmit} loading={formik.isSubmitting}>
-        <Form.Field required>
-          <label>Enter sum</label>
-          <Input
-            placeholder="Sum"
-            name="tonsToWrap"
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            value={formik.values.tonsToWrap}
-          />
-        </Form.Field>
-        <Form.Field required>
-          <label>Enter address</label>
-          <Input
-            placeholder="Address EVM"
-            name="ethAddr"
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            value={formik.values.ethAddr}
-          />
-        </Form.Field>
-        <Container>
-          <Button type="submit" primary>
-            Submit
-          </Button>
-          <Button type="reset">Reset</Button>
-        </Container>
-      </Form>
+      <Tab
+        menu={{ secondary: true, pointing: true }}
+        panes={[
+          {
+            menuItem: "Send TON",
+            render: () => (
+              <Form
+                onSubmit={formik.handleSubmit}
+                loading={formik.isSubmitting}
+              >
+                <Form.Field required>
+                  <label>Enter sum</label>
+                  <Input
+                    placeholder="Sum"
+                    name="tonsToWrap"
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    value={formik.values.tonsToWrap}
+                  />
+                </Form.Field>
+                <Form.Field required>
+                  <label>Enter address</label>
+                  <Input
+                    placeholder="Address EVM"
+                    name="ethAddr"
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    value={formik.values.ethAddr}
+                  />
+                </Form.Field>
+                <Container>
+                  <Button type="submit" primary>
+                    Submit
+                  </Button>
+                  <Button type="reset">Reset</Button>
+                </Container>
+              </Form>
+            ),
+          },
+          {
+            menuItem: "Use existing TON transaction",
+            render: () => (
+              <Form
+                onSubmit={oldTxFormik.handleSubmit}
+                loading={oldTxFormik.isSubmitting}
+              >
+                <Form.Field required>
+                  <label>Enter tx hash</label>
+                  <Input
+                    placeholder="Hash"
+                    name="hash"
+                    onChange={oldTxFormik.handleChange}
+                    onBlur={oldTxFormik.handleBlur}
+                    value={oldTxFormik.values.hash}
+                  />
+                </Form.Field>
+                <Form.Field required>
+                  <label>Enter tx lt</label>
+                  <Input
+                    placeholder="lt"
+                    name="lt"
+                    onChange={oldTxFormik.handleChange}
+                    onBlur={oldTxFormik.handleBlur}
+                    value={oldTxFormik.values.lt}
+                  />
+                </Form.Field>
+                <Container>
+                  <Button type="submit" primary>
+                    Submit
+                  </Button>
+                  <Button type="reset">Reset</Button>
+                </Container>
+              </Form>
+            ),
+          },
+        ]}
+      />
     </Container>
   );
 };

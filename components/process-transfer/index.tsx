@@ -1,4 +1,5 @@
 import { bridgeAbi } from "@/artifacts/eth/bridge/bridge";
+import { validatorAbi } from "@/artifacts/eth/validator/validator";
 import { TonBlock, TonTransaction, TxReq } from "@/types";
 import { sleep } from "@/utils";
 import axios from "axios";
@@ -73,6 +74,7 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({
   const [currentTx, setCurrentTx] = useState<TonTransaction>();
   const [pending, setPending] = useState(false);
   const [count, setCount] = useState(0);
+  const [mcBlockSteps, setMcBlockSteps] = useState({ current: 0, max: 0 });
   const mcBlock = useMemo(() => {
     if (!currentTx) {
       return undefined;
@@ -92,10 +94,14 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({
 
   const provider = useSigner();
   const bridgeContract = useContract({
-    // address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-    // address: "0x18A9e708B17A477BFF625db0F65C6f10B41d73ca",
     address: process.env.NEXT_PUBLIC_ETH_BRIDGE_ADDR,
     abi: bridgeAbi,
+    signerOrProvider: provider.data,
+  });
+
+  const validatorContract = useContract({
+    address: process.env.NEXT_PUBLIC_ETH_VALIDATOR_ADDR,
+    abi: validatorAbi,
     signerOrProvider: provider.data,
   });
 
@@ -114,19 +120,88 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({
   }, [txHash, currentTx, count]);
 
   const validateBlock = async (block: TonBlock) => {
+    if (!validatorContract) {
+      console.log("no contract");
+      return;
+    }
     if (pending || !txHash) {
+      console.log("no tx hash");
       return;
     }
     setPending(true);
     try {
       if (block.workchain === -1) {
-        const res = await axios.post(apiRoot + "/validator/checkmcblock", {
+        const {
+          data: { signatures, blockData },
+        } = await axios.post(apiRoot + "/validator/checkmcblock", {
           id: block.id,
         });
+        if (signatures && blockData) {
+          setMcBlockSteps({
+            current: 0,
+            max: Math.ceil(signatures.length / 5) + 1,
+          });
+          try {
+            for (let i = 0; i < signatures.length; i += 5) {
+              const subArr = signatures.slice(i, i + 5);
+              while (subArr.length < 5) {
+                subArr.push(signatures[0]);
+              }
+
+              await validatorContract
+                .verifyValidators(
+                  "0x" + blockData.id.root_hash,
+                  `0x${blockData.id.file_hash}`,
+                  subArr.map((c: any) => ({
+                    node_id: `0x${c.node_id}`,
+                    r: `0x${c.r}`,
+                    s: `0x${c.s}`,
+                  })) as any[5]
+                )
+                .then((tx: any) => (tx as any).wait());
+
+              setMcBlockSteps((state) => ({
+                ...state,
+                current: state.current + 1,
+              }));
+            }
+
+            await validatorContract
+              .addCurrentBlockToVerifiedSet("0x" + blockData.id.root_hash)
+              .then((tx: any) => (tx as any).wait());
+
+            setMcBlockSteps((state) => ({
+              ...state,
+              current: state.current + 1,
+            }));
+
+            await axios.post(apiRoot + "/validator/checkmcblock", {
+              id: block.id,
+            });
+          } catch (error: any) {
+            console.error(error.message);
+          } finally {
+          }
+        }
       } else {
-        const res = await axios.post(apiRoot + "/validator/checkshard", {
+        const {
+          data: { bocProof },
+        } = await axios.post(apiRoot + "/validator/checkshard", {
           id: block.id,
         });
+
+        try {
+          await validatorContract
+            .parseShardProofPath(Buffer.from(bocProof, "base64"))
+            .then((tx: any) => (tx as any).wait());
+
+          await axios.post(apiRoot + "/validator/checkshard", {
+            id: block.id,
+          });
+        } catch (error: any) {
+          console.error(error.message);
+        } finally {
+        }
       }
       await fetchTx(txHash).then((tx) => {
         setCurrentTx(tx);
@@ -186,7 +261,10 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({
                 name={isMcBlockReady ? "check" : "warning circle"}
                 color={isMcBlockReady ? "green" : "yellow"}
               />
-              Masterchain block
+              Masterchain block{" "}
+              {mcBlockSteps.max
+                ? `(${mcBlockSteps.current}/${mcBlockSteps.max})`
+                : ""}
             </List.Content>
           </List.Item>
         )}

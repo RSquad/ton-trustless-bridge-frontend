@@ -17,7 +17,7 @@ const TakeWton: FC<TakeWtonProps> = ({ children, resetStep, txHash }) => {
       </Button>
       <a
         className="block mt-2 align-middle"
-        href={`https://testnet.bscscan.com/tx/${txHash}`}
+        href={`https://sepolia.etherscan.io/tx/${txHash}`}
         target="_blank"
         rel="noopener noreferrer"
       >

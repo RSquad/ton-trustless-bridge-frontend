@@ -12,7 +12,7 @@ import {
 import { Web3Modal } from "@web3modal/react";
 import { useEffect, useState } from "react";
 import { WagmiConfig, configureChains, createClient } from "wagmi";
-import { bscTestnet } from "wagmi/chains";
+import { sepolia } from "wagmi/chains";
 
 // 2. Configure wagmi client
 const chains = [
@@ -21,11 +21,12 @@ const chains = [
   // polygon,
   // avalanche,
   // arbitrum,
-  bscTestnet,
+  // bscTestnet,
   // bsc,
   // optimism,
   // gnosis,
   // fantom,
+  sepolia,
 ];
 
 const { provider } = configureChains(chains, [

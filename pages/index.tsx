@@ -14,6 +14,16 @@ const Home = () => {
         guarantees a high level of security and decentralization.
       </p>
       <Message warning>(Use Sepolia and TON Testnet for testing)</Message>
+      <p>
+        WTON address:{" "}
+        <a
+          href={`https://sepolia.etherscan.io/token/0x2846D3b8616492A5da97a53f8A5c30A18Ae0D5d6`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          0x2846D3b8616492A5da97a53f8A5c30A18Ae0D5d6
+        </a>
+      </p>
       <WrapTon />
     </>
   );

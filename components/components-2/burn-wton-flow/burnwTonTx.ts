@@ -23,12 +23,13 @@ export const useBurnwTonTx = (
     const addrHash = Address.parse(tonAddr).hash.toString("hex");
     const txRes = await bridgeContract.swapToken(
       myEvmAccount.address,
-      `0x${addrHash}`,
       parseEther(ethsToWrap),
+      `0x${addrHash}`,
       process.env.NEXT_PUBLIC_ETH_ADAPTER_ADDR
     );
 
     await txRes.wait();
+    console.log(txRes.hash);
     setEthHash(txRes.hash);
 
     const rec_res = await provider_api.getTransactionReceipt(txRes.hash);

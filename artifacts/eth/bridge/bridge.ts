@@ -46,8 +46,59 @@ export const bridgeAbi = [
         name: "adapterAddr",
         type: "address",
       },
+      {
+        internalType: "uint256",
+        name: "opcode",
+        type: "uint256",
+      },
     ],
     name: "readTransaction",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "to",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "adapterAddr",
+        type: "address",
+      },
+    ],
+    name: "swapETH",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "from",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "to",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "adapterAddr",
+        type: "address",
+      },
+    ],
+    name: "swapToken",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

@@ -1,7 +1,19 @@
-import WrapTon from "@/components/wrap-ton";
+import BurnWethFlow from "@/components/components-2/burn-weth-flow";
+import BurnwTonFlow from "@/components/components-2/burn-wton-flow";
+import CurrencySelect from "@/components/components-2/currency-select";
+import SendETHFlow from "@/components/components-2/send-eth-flow";
+import SendTonFlow from "@/components/components-2/send-ton-flow";
+import StepFormHeader from "@/components/components-2/step-form-header";
+import { useState } from "react";
 import { Header, Message } from "semantic-ui-react";
 
+const jettonAddr = process.env.NEXT_PUBLIC_TON_JETTON_ADDR!;
+const tokenWTON = process.env.NEXT_PUBLIC_ETH_WTON_ADDR!;
+
 const Home = () => {
+  const [baseCoin, setBaseCoin] = useState<string>("ETH");
+  const [step, setStep] = useState<number>(0);
+
   return (
     <>
       <Header as="h1">Welcome to TON Trustless Bridge</Header>
@@ -17,14 +29,37 @@ const Home = () => {
       <p>
         WTON address:{" "}
         <a
-          href={`https://sepolia.etherscan.io/token/0x2846D3b8616492A5da97a53f8A5c30A18Ae0D5d6`}
+          href={`https://sepolia.etherscan.io/token/${tokenWTON}`}
           target="_blank"
           rel="noopener noreferrer"
         >
-          0x2846D3b8616492A5da97a53f8A5c30A18Ae0D5d6
+          {tokenWTON}
         </a>
       </p>
-      <WrapTon />
+      <p>
+        WETH address:{" "}
+        <a
+          href={`https://testnet.tonscan.org/address/${jettonAddr}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {jettonAddr}
+        </a>
+      </p>
+      <CurrencySelect baseCoin={baseCoin} setBaseCoin={setBaseCoin} />
+      <StepFormHeader baseCoin={baseCoin} step={step} />
+      {baseCoin === "TON" && (
+        <SendTonFlow step={step} setStep={setStep} baseCoin={baseCoin} />
+      )}
+      {baseCoin === "ETH" && (
+        <SendETHFlow step={step} setStep={setStep} baseCoin={baseCoin} />
+      )}
+      {baseCoin === "wETH" && (
+        <BurnWethFlow step={step} setStep={setStep} baseCoin={baseCoin} />
+      )}
+      {baseCoin === "wTON" && (
+        <BurnwTonFlow step={step} setStep={setStep} baseCoin={baseCoin} />
+      )}
     </>
   );
 };

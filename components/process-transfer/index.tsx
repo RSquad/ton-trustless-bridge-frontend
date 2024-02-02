@@ -235,7 +235,8 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({
       const txRes = await bridgeContract.readTransaction(
         Buffer.from(txValidateParams.txBoc, "hex"),
         Buffer.from(txValidateParams.boc, "hex"),
-        txValidateParams.adapter
+        txValidateParams.adapter,
+        1
       );
       console.log("tx completed", txRes);
 

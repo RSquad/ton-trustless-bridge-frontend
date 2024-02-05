@@ -73,6 +73,7 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
     }
     const rec_res = await provider_api.getTransactionReceipt(txHash);
     rec_res.cumulativeGasUsed = rec_res.cumulativeGasUsed._hex as any;
+    console.log(rec_res);
 
     const r = Receipt.fromJSON(
       JSON.parse(JSON.stringify(rec_res)) as unknown as IReceiptJSON

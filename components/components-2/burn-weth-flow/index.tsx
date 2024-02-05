@@ -7,7 +7,7 @@ import { Container, Tab } from "semantic-ui-react";
 import { useContract, useProvider, useSigner } from "wagmi";
 import LoadByTonTxForm from "../load-by-ton-tx-form";
 import SendToTonForm from "../send-to-ton-form";
-import { useSendTonTx } from "../send-ton-flow/sendTonTx";
+import { useBurnTonTx } from "./burnWethTx";
 
 interface BurnWethFlowProps extends HTMLAttributes<HTMLDivElement> {
   step: number;
@@ -18,7 +18,7 @@ interface BurnWethFlowProps extends HTMLAttributes<HTMLDivElement> {
 const BurnWethFlow: FC<BurnWethFlowProps> = ({ setStep, step, baseCoin }) => {
   const [testHash, setTestHash] = useState<TxReq | undefined>();
   const [ethTxHash, setEthTxHash] = useState<string>();
-  const { onFormSubmit } = useSendTonTx(setTestHash);
+  const { onFormSubmit } = useBurnTonTx(setTestHash);
 
   const provider = useSigner();
   const provider_api = useProvider();

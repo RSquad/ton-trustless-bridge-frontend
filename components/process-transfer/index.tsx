@@ -64,12 +64,14 @@ function fetchTx(txHash: TxReq): Promise<TonTransaction> {
 interface ProcessTransferProps extends HTMLAttributes<HTMLDivElement> {
   txHash?: TxReq;
   onComplete: (hash: string) => void;
+  operationType?: number;
 }
 
 const ProcessTransfer: FC<ProcessTransferProps> = ({
   children,
   txHash,
   onComplete,
+  operationType = 1,
 }) => {
   const [currentTx, setCurrentTx] = useState<TonTransaction>();
   const [pending, setPending] = useState(false);
@@ -236,7 +238,7 @@ const ProcessTransfer: FC<ProcessTransferProps> = ({
         Buffer.from(txValidateParams.txBoc, "hex"),
         Buffer.from(txValidateParams.boc, "hex"),
         txValidateParams.adapter,
-        1
+        operationType
       );
       console.log("tx completed", txRes);
 

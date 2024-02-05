@@ -70,6 +70,7 @@ const BurnWethFlow: FC<BurnWethFlowProps> = ({ setStep, step, baseCoin }) => {
             setStep(2);
             setEthTxHash(hash);
           }}
+          operationType={2}
         />
       )}
       {step === 2 && (

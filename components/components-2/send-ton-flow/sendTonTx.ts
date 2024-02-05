@@ -6,7 +6,6 @@ import { Base64 } from "@tonconnect/protocol";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { Dispatch, SetStateAction } from "react";
 import { Address, beginCell, toNano } from "ton-core";
-import { Transaction } from "tonapi-sdk-js";
 
 export const buildSendTonTx = (address: bigint, tonsToWrap: string) => {
   return Base64.encode(
@@ -46,24 +45,26 @@ export const useSendTonTx = (
 
   const onFormSubmit = async (ethAddr: string, tonsToWrap: string) => {
     const { transactions: beforeTxs } =
-      await tonRawBlockchainApi.getTransactions({
-        account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
-      });
+      await tonRawBlockchainApi.blockchain.getBlockchainAccountTransactions(
+        Address.parse(process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!).toRawString(),
+        { limit: 20 }
+      );
+
     await sendWrap(BigInt(ethAddr), tonsToWrap);
     let found = false;
     let attempts = 0;
     while (!found && attempts < 10) {
       const txs = (
-        await tonRawBlockchainApi.getTransactions({
-          account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
-        })
-      ).transactions.filter(
-        (tx: Transaction) =>
-          !beforeTxs.find((beforeTx) => beforeTx.hash === tx.hash)
-      );
+        await await tonRawBlockchainApi.blockchain.getBlockchainAccountTransactions(
+          Address.parse(process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!).toRawString(),
+          { limit: 20 }
+        )
+      ).transactions.filter((tx) => {
+        return !beforeTxs.find((beforeTx) => beforeTx.hash === tx.hash);
+      });
       if (txs.length) {
         const tx = txs.find((tx) => {
-          const addr = tx.inMsg?.source?.address;
+          const addr = tx.in_msg?.source?.address;
           if (!addr) return false;
           return Address.parse(addr).equals(Address.parse(myTonAddrRaw));
         });

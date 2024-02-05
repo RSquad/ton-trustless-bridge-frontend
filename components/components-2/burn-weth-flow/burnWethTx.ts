@@ -4,6 +4,7 @@ import { TxReq } from "@/types";
 import { sleep } from "@/utils";
 import { Base64 } from "@tonconnect/protocol";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
+import { parseEther } from "ethers/lib/utils.js";
 import { Dispatch, SetStateAction } from "react";
 import { Address, Dictionary, beginCell, toNano } from "ton-core";
 import { TupleItemSlice } from "ton-core/dist/tuple/tuple";
@@ -23,7 +24,7 @@ export const buildBurnTonTx = (
     beginCell()
       .storeUint(JettonOpCodes.TRANSFER, 32)
       .storeUint(0, 64)
-      .storeCoins(toNano(tonsToWrap))
+      .storeCoins(parseEther(tonsToWrap).toBigInt())
       .storeAddress(toAddress)
       .storeAddress(senderAddress)
       .storeDict(Dictionary.empty())
@@ -31,7 +32,7 @@ export const buildBurnTonTx = (
       .storeUint(0, 1)
       .storeRef(
         beginCell()
-          .storeCoins(toNano(tonsToWrap))
+          .storeCoins(parseEther(tonsToWrap).toBigInt())
           .storeUint(address, 256)
           .storeAddress(senderAddress)
           .endCell()
@@ -102,26 +103,28 @@ export const useBurnTonTx = (
 
   const onFormSubmit = async (ethAddr: string, tonsToWrap: string) => {
     const { transactions: beforeTxs } =
-      await tonRawBlockchainApi.getTransactions({
-        account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
-      });
+      await tonRawBlockchainApi.blockchain.getBlockchainAccountTransactions(
+        Address.parse(process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!).toRawString(),
+        { limit: 20 }
+      );
     await sendWrap(BigInt(ethAddr), tonsToWrap);
     let found = false;
     let attempts = 0;
     while (!found && attempts < 10) {
       const txs = (
-        await tonRawBlockchainApi.getTransactions({
-          account: process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!,
-        })
+        await tonRawBlockchainApi.blockchain.getBlockchainAccountTransactions(
+          Address.parse(process.env.NEXT_PUBLIC_TON_BRIDGE_ADDR!).toRawString(),
+          { limit: 20 }
+        )
       ).transactions.filter(
         (tx: Transaction) =>
           !beforeTxs.find((beforeTx) => beforeTx.hash === tx.hash)
       );
       if (txs.length) {
         const tx = txs.find((tx) => {
-          const addr = tx.inMsg?.source?.address;
+          const addr = tx.in_msg?.source?.address;
           if (!addr) return false;
-          const dest = tx.outMsgs.filter((out) => !out.destination);
+          const dest = tx.out_msgs.filter((out) => !out.destination);
           console.log(tx, dest);
           if (!dest.length) return false;
           // addr === bridge ton wallet

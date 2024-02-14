@@ -152,15 +152,42 @@ function initOp2(beacon: Cell) {
 
 const apiRoot = process.env.NEXT_PUBLIC_TRUSTLESS_BACKEND_URL;
 
+const fetch_retry = async (
+  url: string,
+  options: RequestInit = {},
+  n: number = 10
+): Promise<any> => {
+  try {
+    return await fetch(url, options);
+  } catch (err) {
+    if (n === 1) throw err;
+    await sleep(5000);
+    return await fetch_retry(url, options, n - 1);
+  }
+};
+
 interface ProcessTransferEthProps extends HTMLAttributes<HTMLDivElement> {
   txHash?: string;
   onComplete: (hash: string) => void;
 }
 
-function fetchBeaconData(txHash: string): Promise<any> {
-  return fetch(`${apiRoot}/beacon/getethvalidation/${txHash}`).then((v) =>
-    v.json()
-  );
+async function fetchBeaconData(txHash: string, repeats = 0): Promise<any> {
+  await sleep(2000);
+
+  return fetch(`${apiRoot}/beacon/getethvalidation/${txHash}`)
+    .then((res) => {
+      if (res.ok) {
+        return res.json();
+      } else {
+        throw new Error("Something went wrong");
+      }
+    })
+    .catch((error) => {
+      if (repeats >= 10) {
+        throw error;
+      }
+      return sleep(5000).then(() => fetchBeaconData(txHash, repeats + 1));
+    });
 }
 
 export const buildSendReceiptTx = (receipt: Cell) => {
@@ -187,6 +214,26 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
   const [optimistics, setOptimistics] = useState<string[]>([]);
   const [execution, setExecution] = useState<string>();
   const [receiptProof, setReceiptProof] = useState<string>();
+
+  const updateDate = () => {
+    setPending(true);
+    return fetchBeaconData(txHash || "0x000").then(
+      ({ finalityData, optimisticsData, executionData, receiptData }) => {
+        setFinality(finalityData.isVerified ? undefined : finalityData.boc);
+        setOptimistics(
+          optimisticsData.bocs.filter((boc: string, index: number) => {
+            if (optimisticsData.isVerified[index]) {
+              return false;
+            }
+            return true;
+          })
+        );
+        setExecution(executionData.isVerified ? undefined : executionData.boc);
+        setReceiptProof(receiptData.boc);
+        setPending(false);
+      }
+    );
+  };
 
   const checkReceipt = async () => {
     if (!txHash) {
@@ -230,6 +277,8 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
         },
       ],
     });
+
+    await updateDate();
   };
 
   const verifyOptimistics = async () => {
@@ -261,7 +310,7 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
 
       let txHash = lastTxHash;
       while (txHash == lastTxHash) {
-        await sleep(5000); // some delay between API calls
+        await sleep(5000);
         let txs =
           await tonRawBlockchainApi.blockchain.getBlockchainAccountTransactions(
             Address.parse(
@@ -272,6 +321,7 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
         txHash = txs.transactions[0].hash;
       }
     }
+    await updateDate();
   };
 
   const verifyExecution = async () => {
@@ -288,6 +338,7 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
         },
       ],
     });
+    await updateDate();
   };
 
   const verifyReceipt = async () => {
@@ -309,22 +360,7 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
   };
 
   useEffect(() => {
-    fetchBeaconData(txHash || "0x000").then(
-      ({ finalityData, optimisticsData, executionData, receiptData }) => {
-        setFinality(finalityData.boc);
-        setOptimistics(
-          optimisticsData.bocs.filter((boc: string, index: number) => {
-            if (optimisticsData.isVerified[index]) {
-              return false;
-            }
-            return true;
-          })
-        );
-        setExecution(executionData.boc);
-        setReceiptProof(receiptData.boc);
-        setPending(false);
-      }
-    );
+    updateDate();
   }, []);
 
   return (
@@ -392,7 +428,7 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
           checkReceipt();
         }}
       >
-        Validate ETH transaction
+        Validate ETH transaction (fast)
       </Button>
     </Container>
   );

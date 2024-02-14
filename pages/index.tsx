@@ -12,7 +12,7 @@ const tokenWTON = process.env.NEXT_PUBLIC_ETH_WTON_ADDR!;
 
 const Home = () => {
   const [baseCoin, setBaseCoin] = useState<string>("ETH");
-  const [step, setStep] = useState<number>(1);
+  const [step, setStep] = useState<number>(0);
 
   return (
     <>

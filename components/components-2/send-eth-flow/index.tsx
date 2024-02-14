@@ -53,7 +53,10 @@ const SendETHFlow: FC<SendETHFlowProps> = ({ setStep, step, baseCoin }) => {
       )}
       {step === 1 && (
         <ProcessTransferEth
-          txHash={ethTxHash}
+          txHash={
+            ethTxHash ||
+            "0x11914d9f106d372a7ffc295dfd0db47cadfa6c354be311d4a3ac231f2c0bff4f"
+          }
           onComplete={(hash) => {
             setStep(2);
             setEthTxHash(hash);

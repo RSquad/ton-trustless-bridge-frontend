@@ -421,6 +421,21 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
             </List.Content>
           </List.Item>
         )}
+        <List.Item>
+          <List.Content>
+            <p>
+              Click this for update client state (use if you cancel transaction
+              or it was rejected)
+            </p>
+            <Button
+              onClick={() => {
+                updateDate();
+              }}
+            >
+              Refresh process transfer state
+            </Button>
+          </List.Content>
+        </List.Item>
       </List>
 
       {/* <Button

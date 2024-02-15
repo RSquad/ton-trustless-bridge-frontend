@@ -142,7 +142,7 @@ export const useBurnTonTx = (
         }
       }
       attempts += 1;
-      await sleep(2000);
+      await sleep(4000);
     }
   };
   return { onFormSubmit };

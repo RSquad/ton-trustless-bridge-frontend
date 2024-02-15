@@ -350,7 +350,7 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
       messages: [
         {
           address: process.env.NEXT_PUBLIC_TON_VALIDATOR_ADDR!,
-          amount: toNano("0.325").toString(),
+          amount: toNano("0.425").toString(),
           payload: receiptProof,
         },
       ],
@@ -423,13 +423,13 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
         )}
       </List>
 
-      <Button
+      {/* <Button
         onClick={() => {
           checkReceipt();
         }}
       >
         Validate ETH transaction (fast)
-      </Button>
+      </Button> */}
     </Container>
   );
 };

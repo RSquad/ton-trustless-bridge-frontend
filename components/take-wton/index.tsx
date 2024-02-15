@@ -1,6 +1,8 @@
 import { FC, HTMLAttributes } from "react";
 import { Button, Container, Icon, Image } from "semantic-ui-react";
 
+const jettonAddr = process.env.NEXT_PUBLIC_TON_JETTON_ADDR!;
+
 interface TakeWtonProps extends HTMLAttributes<HTMLDivElement> {
   resetStep: () => void;
   txHash?: string;
@@ -39,7 +41,7 @@ const TakeWton: FC<TakeWtonProps> = ({
       {(baseCoin === "ETH" || baseCoin === "wTON") && (
         <a
           className="block mt-2 align-middle"
-          href={`https://testnet.tonscan.org/address/${txHash}`}
+          href={`https://testnet.tonscan.org/address/${jettonAddr}`}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -56,3 +58,5 @@ const TakeWton: FC<TakeWtonProps> = ({
 };
 
 export default TakeWton;
+
+// href={`https://testnet.tonscan.org/address/${txHash}`}z

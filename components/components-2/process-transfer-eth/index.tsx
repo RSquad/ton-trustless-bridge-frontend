@@ -272,7 +272,7 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
       messages: [
         {
           address: process.env.NEXT_PUBLIC_TON_VALIDATOR_ADDR!,
-          amount: toNano("0.07").toString(),
+          amount: toNano("0.08").toString(),
           payload: finality,
         },
       ],
@@ -302,7 +302,7 @@ const ProcessTransferEth: FC<ProcessTransferEthProps> = ({
         messages: [
           {
             address: process.env.NEXT_PUBLIC_TON_VALIDATOR_ADDR!,
-            amount: toNano("0.07").toString(),
+            amount: toNano("0.08").toString(),
             payload: optimistics[i],
           },
         ],

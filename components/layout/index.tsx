@@ -13,7 +13,7 @@ const Layout: FC<LayoutProps> = ({ children }) => {
         <Menu className="h-16">
           <Container>
             <Menu.Item as={Link} href="/" header>
-              TON Trustless Bridge
+              TON Teleport
             </Menu.Item>
             <Menu.Item as={Link} href="/blocks">
               Blocks
